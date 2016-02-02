@@ -1,7 +1,9 @@
 package main;
 
 import hosts.beb.BebHost;
+import hosts.client.ClientHost;
 import msg.TAddress;
+import parents.client.ClientParent;
 import se.sics.kompics.Kompics;
 
 import java.net.InetAddress;
@@ -18,7 +20,7 @@ public class Main{
       HashSet<TAddress> nodes = new HashSet<>();
       nodes.add(self);
 
-      Kompics.createAndStart(BebHost.class, new BebHost.Init(self, nodes));
+      Kompics.createAndStart(ClientHost.class, new ClientHost.Init(self, nodes));
       Thread.sleep(1000);
     } catch (Exception ex) {
       ex.printStackTrace();

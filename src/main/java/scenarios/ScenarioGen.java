@@ -1,9 +1,8 @@
 package scenarios;
 
-import main.Client;
+import main.Routing;
 import msg.TAddress;
-import parents.beb.BebParent;
-import se.sics.kompics.ComponentDefinition;
+import parents.client.ClientParent;
 import se.sics.kompics.Init;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;
@@ -26,7 +25,7 @@ public class ScenarioGen {
       try {
         InetAddress ip = InetAddress.getByName(addr_prefix + i);
         TAddress addr = new TAddress(ip, port);
-        addr.group = i % 2 == 0 ? 1 : 2;
+        addr.group = Routing.get_group(i);
         nodes.add(addr);
       } catch (UnknownHostException e) {
         throw new RuntimeException(e);
@@ -43,7 +42,7 @@ public class ScenarioGen {
         {
           try{
             selfAdr = new TAddress(InetAddress.getByName(addr_prefix + self), port);
-            selfAdr.group = self % 2 == 0? 1 : 2;
+            selfAdr.group = Routing.get_group(self);
           } catch (UnknownHostException e) {
             throw new RuntimeException(e);
           }
@@ -56,12 +55,12 @@ public class ScenarioGen {
 
         @Override
         public Class getComponentDefinition() {
-          return Client.class;
+          return ClientParent.class;
         }
 
         @Override
         public Init getComponentInit() {
-          return new Client.Init(selfAdr);
+          return new ClientParent.Init(selfAdr, nodes);
         }
 
         public String toString() {
@@ -71,63 +70,19 @@ public class ScenarioGen {
     }
   };
 
-  static Operation1 startBebOp = new Operation1<StartNodeEvent, Integer>() {
-
-    public StartNodeEvent generate(final Integer self) {
-
-      return new StartNodeEvent() {
-        TAddress selfAdr;
-        {
-          try{
-            selfAdr = new TAddress(InetAddress.getByName(addr_prefix + self), port);
-            selfAdr.group = self % 2 == 0? 1 : 2;
-          } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
-          }
-        }
-
-        @Override
-        public Address getNodeAddress() {
-          return selfAdr;
-        }
-
-        @Override
-        public Class getComponentDefinition() {
-          return BebParent.class;
-        }
-
-        @Override
-        public Init getComponentInit() {
-          return new BebParent.Init(selfAdr, nodes);
-        }
-
-        public String toString() {
-          return "StartBebParent<" + selfAdr.toString() + " group " + selfAdr.group + ">";
-        }
-      };
-    }
-  };
 
   public static SimulationScenario bebScene() {
     SimulationScenario scen = new SimulationScenario() {
       {
-        SimulationScenario.StochasticProcess bebParent = new SimulationScenario.StochasticProcess() {
-          {
-            eventInterArrivalTime(constant(1000));
-            raise(6, startBebOp, new BasicIntSequentialDistribution(1));
-          }
-        };
-
         SimulationScenario.StochasticProcess clients = new SimulationScenario.StochasticProcess() {
           {
-            eventInterArrivalTime(constant(1000));
+            eventInterArrivalTime(constant(0));
             raise(6, startClientOp, new BasicIntSequentialDistribution(1));
           }
         };
 
-        bebParent.start();
-        //clients.startAfterTerminationOf(1000, bebParent);
-        terminateAfterTerminationOf(3000, bebParent);
+        clients.start();
+        terminateAfterTerminationOf(3000, clients);
       }
     };
     return scen;
