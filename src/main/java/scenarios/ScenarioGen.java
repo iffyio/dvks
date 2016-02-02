@@ -19,14 +19,15 @@ public class ScenarioGen {
   static String addr_prefix = "192.193.0.";
   static HashSet<TAddress> nodes;
   static int port = 10000;
+
   static{
     nodes = new HashSet<>(6);
-    for (int i = 1; i <= nodes.size(); i++) {
+    for (int i = 1; i <= 6; i++) {
       try {
-        InetAddress ip = InetAddress.getByName(addr_prefix+i);
+        InetAddress ip = InetAddress.getByName(addr_prefix + i);
         TAddress addr = new TAddress(ip, port);
-        addr.group = i % 2 == 0? 1 : 2;
-        System.out.println(nodes.size());
+        addr.group = i % 2 == 0 ? 1 : 2;
+        nodes.add(addr);
       } catch (UnknownHostException e) {
         throw new RuntimeException(e);
       }
@@ -125,8 +126,8 @@ public class ScenarioGen {
         };
 
         bebParent.start();
-        clients.startAfterTerminationOf(1000, bebParent);
-        terminateAfterTerminationOf(3000, clients);
+        //clients.startAfterTerminationOf(1000, bebParent);
+        terminateAfterTerminationOf(3000, bebParent);
       }
     };
     return scen;

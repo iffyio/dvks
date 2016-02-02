@@ -31,8 +31,8 @@ public class Client extends ComponentDefinition {
 
   Handler<Start> startHandler = new Handler<Start>() {
     public void handle(Start event) {
-      logger.info("Client started on node {}!", self);
-      if (self.getIp().toString().contains("6")) {
+      //logger.info("Client started on node {}!", self);
+      if (self.getIp().toString().contains(".3")) {
         logger.info("trying to broadcast ping");
         trigger(new BebBroadcast(new Ping(self, self), true), beb_port);
       }

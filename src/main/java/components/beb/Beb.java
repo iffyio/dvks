@@ -36,7 +36,6 @@ public class Beb extends ComponentDefinition {
   private Handler<Start> startHandler = new Handler<Start>() {
     public void handle(Start event) {
       logger.info("Component Beb created at {}!", self);
-      logger.info("nodes size {}!", nodes.size());
     }
   };
 
