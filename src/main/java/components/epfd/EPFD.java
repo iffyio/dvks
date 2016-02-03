@@ -1,7 +1,8 @@
 package components.epfd;
 
-import components.sm.SM;
 import msg.TAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ports.epfd.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
@@ -12,12 +13,13 @@ import java.util.UUID;
 
 public class EPFD extends ComponentDefinition {
 
+  private static final Logger logger = LoggerFactory.getLogger(EPFD.class);
   private TAddress self;
   private HashSet<TAddress> nodes, alive, suspected;
   private long delay = 500;
-  private final int delta = 500;
+  private final int delta = 100;
 
-  Negative<EPFLPort> epfl_port = provides(EPFLPort.class);
+  Negative<EPFDPort> epfl_port = provides(EPFDPort.class);
   Positive<Network> network = requires(Network.class);
   Positive<Timer> timer = requires(Timer.class);
 
@@ -38,6 +40,7 @@ public class EPFD extends ComponentDefinition {
     public void handle(Start start) {
       alive = new HashSet<>(nodes);
       suspected = new HashSet<>();
+      //logger.info("started epfd on {}", self);
 
       set_timer();
     }
@@ -47,16 +50,18 @@ public class EPFD extends ComponentDefinition {
   Handler<HeartbeatTimeout> timeoutHandler = new Handler<HeartbeatTimeout>() {
     @Override
     public void handle(HeartbeatTimeout heartbeatTimeout) {
-      HashSet<TAddress> suspected_nodes = new HashSet<>(alive);
-      suspected_nodes.retainAll(alive);
+      HashSet<TAddress> resurrected_nodes = new HashSet<>(alive);
+      resurrected_nodes.retainAll(alive);
 
-      if (!suspected_nodes.isEmpty())
+      if (!resurrected_nodes.isEmpty())
         delay = delay + delta;
 
       for (TAddress node : nodes) {
         if (!suspected.contains(node) &&
-                !alive.contains(node))
+                !alive.contains(node)) {
+          suspected.add(node);
           trigger(new Suspect(node), epfl_port);
+        }
         else if (alive.contains(node) && suspected.contains(node)){
           suspected.remove(node);
           trigger(new Restore(node), epfl_port);
@@ -84,6 +89,7 @@ public class EPFD extends ComponentDefinition {
   Handler<HeartbeatRequest> hbreqHandler = new Handler<HeartbeatRequest>() {
     @Override
     public void handle(HeartbeatRequest hbreq) {
+      //logger.info("[{}] heartbeat request from {}", self, hbreq.getSource());
       trigger(new HeartbeatReply(self, hbreq.getSource()), network);
     }
   };
@@ -91,6 +97,7 @@ public class EPFD extends ComponentDefinition {
   Handler<HeartbeatReply> hbrepHandler = new Handler<HeartbeatReply>() {
     @Override
     public void handle(HeartbeatReply hbrep) {
+      //logger.info("[{}] heartbeat reply to {}", self, hbrep.getSource());
       alive.add(hbrep.getSource());
     }
   };
