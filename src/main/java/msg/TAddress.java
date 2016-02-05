@@ -9,7 +9,7 @@ import java.net.InetSocketAddress;
 public class TAddress implements Address, Serializable {
 
   private final InetSocketAddress isa;
-  public int group;
+  public int group, rank;
 
   public TAddress(InetAddress addr, int port) {
     this.isa = new InetSocketAddress(addr, port);

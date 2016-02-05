@@ -1,14 +1,9 @@
 package ports.sm;
 
-import se.sics.kompics.KompicsEvent;
-
-public class Write implements KompicsEvent{
-
-  public final int key, value;
+public class Write extends Command{
 
   public Write (int key, int value) {
-    this.key = key;
-    this.value = value;
+    super(key, value);
   }
 
   public String toString() {

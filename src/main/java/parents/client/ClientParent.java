@@ -1,15 +1,18 @@
 package parents.client;
 
-import components.beb.Beb;
+import components.epfd.EPFD;
+import components.paxos.Paxos;
 import components.sm.SM;
 import main.Client;
 import msg.TAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ports.beb.BebPort;
+import ports.epfd.EPFDPort;
+import ports.paxos.PaxosPort;
 import ports.sm.SMPort;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.network.netty.ChannelClosed;
 import se.sics.kompics.timer.Timer;
 
 import java.util.HashSet;
@@ -28,13 +31,17 @@ public class ClientParent extends ComponentDefinition{
     this.self = init.self;
     this.nodes = init.nodes;
 
-    //Component beb = create(Beb.class, new Beb.Init(self, nodes));
     Component stateMachine = create(SM.class, new SM.Init(self, nodes));
     Component client = create(Client.class, new Client.Init(self));
+    Component epfd = create(EPFD.class, new EPFD.Init(self, nodes));
+    Component paxos = create(Paxos.class, new Paxos.Init(self, nodes));
 
-    //connect(beb.getNegative(Network.class), network, Channel.TWO_WAY);
-    //connect(stateMachine.getNegative(BebPort.class), beb.getPositive(BebPort.class), Channel.TWO_WAY);
+    connect(epfd.getNegative(Timer.class), timer, Channel.TWO_WAY);
+    connect(epfd.getNegative(Network.class), network, Channel.TWO_WAY);
+    connect(paxos.getNegative(EPFDPort.class), epfd.getPositive(EPFDPort.class), Channel.TWO_WAY);
+    connect(paxos.getNegative(Network.class), network, Channel.TWO_WAY);
     connect(stateMachine.getNegative(Network.class), network, Channel.TWO_WAY);
+    connect(stateMachine.getNegative(PaxosPort.class), paxos.getPositive(PaxosPort.class), Channel.TWO_WAY);
     connect(client.getNegative(SMPort.class), stateMachine.getPositive(SMPort.class), Channel.TWO_WAY);
 
     //logger.info("clientParent started on node {}!", self);

@@ -4,10 +4,7 @@ import main.Routing;
 import msg.TAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ports.paxos.ReadCommand;
-import ports.paxos.ReadCommandReturn;
-import ports.paxos.WriteCommand;
-import ports.paxos.WriteCommandReturn;
+import ports.paxos.*;
 import ports.sm.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
@@ -27,6 +24,7 @@ public class SM extends ComponentDefinition {
   Negative<SMPort> sm_port = provides(SMPort.class);
   //Positive<Timer> timer = requires(Timer.class);
   Positive<Network> network = requires(Network.class);
+  Positive<PaxosPort> paxos_port = requires(PaxosPort.class);
 
   public SM(Init init) {
     this.self = init.self;
@@ -44,10 +42,11 @@ public class SM extends ComponentDefinition {
     subscribe(startHandler, control);
     subscribe(readHandler, sm_port);
     subscribe(writeHandler, sm_port);
-    subscribe(readCommandHandler, network);
-    subscribe(readCommandReturnHandler, network);
-    subscribe(writeCommandHandler, network);
-    subscribe(writeCommandReturnHandler, network);
+    subscribe(deliverHandler, paxos_port);
+    //subscribe(readCommandHandler, network);
+    //subscribe(readCommandReturnHandler, network);
+    //subscribe(writeCommandHandler, network);
+    //subscribe(writeCommandReturnHandler, network);
   }
 
 
@@ -60,13 +59,23 @@ public class SM extends ComponentDefinition {
   Handler<Read> readHandler = new Handler<Read>() {
     @Override
     public void handle(Read read) {
-      for (TAddress node : nodes) {
+      /*for (TAddress node : nodes) {
         if (Routing.get_group(read.key) == node.group) {
           ReadCommand rc = new ReadCommand(self, node, read.key);
           logger.info("sending {} to {}!", rc, node);
           trigger(rc, network);
         }
-      }
+      }*/
+      logger.info("{} trigger new propose {}", self, read);
+      trigger(new Propose(read), paxos_port);
+    }
+  };
+
+  Handler<Deliver> deliverHandler = new Handler<Deliver>() {
+    @Override
+    public void handle(Deliver deliver) {
+      PaxosCommand c = deliver.command;
+      logger.info("{} delivered {}", self, c);
     }
   };
 

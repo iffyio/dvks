@@ -35,9 +35,9 @@ public class Client extends ComponentDefinition {
       //logger.info("Client started on node {}!", self);
       if (self.getIp().toString().contains(".3") || self.group == 3) {
         //logger.info("trying to send read");
-        trigger(new Read(20), sm_port);
-        trigger(new Write(1, 44), sm_port);
-        trigger(new Read(1), sm_port);
+        trigger(new Read(21), sm_port);
+        //trigger(new Write(1, 44), sm_port);
+        //trigger(new Read(1), sm_port);
       }
     }
   };

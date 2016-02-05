@@ -5,14 +5,14 @@ import msg.TAddress;
 import msg.TMessage;
 import se.sics.kompics.network.Transport;
 
-public class ReadCommandReturn extends TMessage {
+import java.io.Serializable;
 
-  public final int key, value;
+public class ReadCommandReturn extends PaxosCommand implements Serializable {
+
+  private static final long serialVersionUID = -433986008L;
 
   public ReadCommandReturn (TAddress src, TAddress dst, int key, int value) {
-    super(src, dst, Transport.TCP);
-    this.key = key;
-    this.value = value;
+    super(src, dst, key, value);
   }
 
   public String toString() {

@@ -1,13 +1,10 @@
 package ports.sm;
 
-import se.sics.kompics.KompicsEvent;
+public class Read extends Command{
 
-public class Read implements KompicsEvent{
-
-  public final int key;
 
   public Read (int key) {
-    this.key = key;
+    super(key);
   }
 
   public String toString() {

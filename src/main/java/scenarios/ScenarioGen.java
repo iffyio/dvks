@@ -45,6 +45,7 @@ public class ScenarioGen {
           try{
             selfAdr = new TAddress(InetAddress.getByName(addr_prefix + self), port);
             selfAdr.group = Routing.get_group(self);
+            selfAdr.rank = self;
           } catch (UnknownHostException e) {
             throw new RuntimeException(e);
           }
@@ -109,6 +110,7 @@ public class ScenarioGen {
           try{
             selfAdr = new TAddress(InetAddress.getByName(addr_prefix + self), port);
             selfAdr.group = Routing.get_group(self);
+            selfAdr.rank = self;
           } catch (UnknownHostException e) {
             throw new RuntimeException(e);
           }
@@ -168,10 +170,11 @@ public class ScenarioGen {
           }
         };
 
-        epfdclients.start();
-        kill_node.startAfterTerminationOf(1000, epfdclients);
-        restart_node.startAfterTerminationOf(4000, epfdclients);
-        terminateAfterTerminationOf(3000, restart_node);
+        clients.start();
+        //kill_node.startAfterTerminationOf(0, clients);
+        //restart_node.startAfterTerminationOf(4000, clients);
+        //terminateAfterTerminationOf(3000, restart_node);
+        terminateAfterTerminationOf(3000, clients);
       }
     };
     return scen;
