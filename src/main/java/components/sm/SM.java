@@ -55,6 +55,7 @@ public class SM extends ComponentDefinition {
     @Override
     public void handle(Command c) {
       logger.info("{} trigger new propose {}", self, c);
+      c.proposer = self;
       trigger(new Propose(c), paxos_port);
     }
   };
@@ -62,14 +63,13 @@ public class SM extends ComponentDefinition {
   Handler<Deliver> deliverHandler = new Handler<Deliver>() {
     @Override
     public void handle(Deliver deliver) {
-      PaxosCommand pc = deliver.command;
-      Command c = pc.command;
-      TAddress sender = pc.proposer;
+      Command c = deliver.command;
+      TAddress sender = c.proposer;
       if (!c.isRead)
         store.put(c.key, c.value);
 
       if (sender.group != self.group)
-        send_return_message(pc);
+        send_return_message(c);
       if (sender.equals(self)) {
         logger.info("{} delivered {}", self, c);
         trigger(new CommandReturn(c.key, store.get(c.key), c.isRead), sm_port);
@@ -77,9 +77,8 @@ public class SM extends ComponentDefinition {
     }
   };
 
-  private void send_return_message(PaxosCommand pc) {
-    TAddress sender = pc.proposer;
-    Command c = pc.command;
+  private void send_return_message(Command c) {
+    TAddress sender = c.proposer;
     boolean isRead = c.isRead;
     logger.info("{} sends {} to {}", self, c, sender);
     trigger(new CommandReturnMessage(self, sender, c.key, store.get(c.key), isRead), network);

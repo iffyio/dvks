@@ -1,5 +1,6 @@
 package ports.sm;
 
+import msg.TAddress;
 import se.sics.kompics.KompicsEvent;
 
 import java.io.Serializable;
@@ -10,6 +11,7 @@ public class Command implements KompicsEvent, Serializable{
 
   public int key, value;
   public boolean isRead = true;
+  public TAddress proposer;
 
   public Command (int key) {
     this.key = key;
@@ -26,6 +28,21 @@ public class Command implements KompicsEvent, Serializable{
       return "<Read " + key + ">";
     else
       return "<Write " + key + " | " + value + ">";
+  }
+
+  @Override
+  public int hashCode() {
+    int result = key;
+    result = 31 * result + value;
+    result = 31 * result + (isRead ? 1 : 0);
+    return result;
+  }
+
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Command c = (Command) o;
+    return this.key == c.key && value == c.value && isRead == c.isRead;
   }
 
 }

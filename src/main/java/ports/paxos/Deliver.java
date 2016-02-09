@@ -1,11 +1,12 @@
 package ports.paxos;
 
+import ports.sm.Command;
 import se.sics.kompics.KompicsEvent;
 
 public class Deliver implements KompicsEvent {
-  public PaxosCommand command;
+  public Command command;
 
-  public Deliver(PaxosCommand command) {
+  public Deliver(Command command) {
     this.command = command;
   }
 }
