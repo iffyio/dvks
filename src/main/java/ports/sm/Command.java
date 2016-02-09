@@ -17,5 +17,12 @@ public class Command implements KompicsEvent{
     isRead = false;
   }
 
+  public String toString() {
+    if (isRead)
+      return "<Read " + key + ">";
+    else
+      return "<Write " + key + " | " + value + ">";
+  }
+
 }
 

@@ -39,7 +39,7 @@ public class SM extends ComponentDefinition {
 
 
     subscribe(startHandler, control);
-    subscribe(read_write_Handler, sm_port);
+    subscribe(commandHandler, sm_port);
     subscribe(deliverHandler, paxos_port);
     subscribe(returnMessageHandler, network);
   }
@@ -51,7 +51,7 @@ public class SM extends ComponentDefinition {
     }
   };
 
-  Handler<Command> read_write_Handler = new Handler<Command>() {
+  Handler<Command> commandHandler = new Handler<Command>() {
     @Override
     public void handle(Command c) {
       logger.info("{} trigger new propose {}", self, c);
@@ -64,37 +64,32 @@ public class SM extends ComponentDefinition {
     public void handle(Deliver deliver) {
       PaxosCommand c = deliver.command;
       TAddress sender = c.getSource();
-      if (!c.isRead) {
+      if (!c.isRead)
         store.put(c.key, c.value);
-      } else if (sender.equals(self)) {
-        logger.info("{} delivered {}", self, c);
-      }
+
       if (sender.group != self.group)
         send_return_message(c);
-      if (sender.equals(self))
-        trigger_sm_return(c);
+      if (sender.equals(self)) {
+        logger.info("{} delivered {}", self, c);
+        trigger(new CommandReturn(c.key, store.get(c.key), c.isRead), sm_port);
+      }
     }
   };
 
   private void send_return_message(PaxosCommand c) {
     TAddress sender = c.getSource();
     boolean isRead = c.isRead;
-    trigger(new CommandReturnMessage(self, sender, c.key, store.get(c.key), isRead), network);
     logger.info("{} sends {} to {}", self, c, sender);
+    trigger(new CommandReturnMessage(self, sender, c.key, store.get(c.key), isRead), network);
   }
 
   Handler<CommandReturnMessage> returnMessageHandler = new Handler<CommandReturnMessage>() {
     @Override
-    public void handle(CommandReturnMessage returnMessage) {
-      logger.info("{} delivered {}", self, returnMessage);
-      //trigger_sm_return(returnMessage);
+    public void handle(CommandReturnMessage crm) {
+      logger.info("{} delivered {}", self, crm);
+      trigger(new CommandReturn(crm.key, crm.value, crm.isRead), sm_port);
     }
   };
-
-  //2 ways to complete a command on the state machine
-  private void trigger_sm_return(PaxosCommand c) {
-      trigger(new CommandReturn(c.key, store.get(c.key)), sm_port);
-  }
 
 
   public static class Init extends se.sics.kompics.Init<SM> {

@@ -19,6 +19,9 @@ public class PaxosCommandReturn extends TMessage implements Serializable{
   }
 
   public String toString() {
-    return "writeCommandReturn " + key + " => " + value;
+    if (isRead)
+      return "<PaxosReadCommandReturn " + key + ">";
+    else
+      return "<PaxosWriteCommandReturn " + key + " | " + value + ">";
   }
 }
