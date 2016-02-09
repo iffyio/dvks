@@ -14,6 +14,5 @@ public class ReturnMessage extends TMessage implements Serializable{
 
   public ReturnMessage(TAddress src, TAddress dst, int key, int value) {
     super(src, dst, Transport.TCP);
-    this.key = key; this.value = value;
   }
 }
