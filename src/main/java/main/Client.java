@@ -25,8 +25,7 @@ public class Client extends ComponentDefinition {
     this.self = init.self;
 
     subscribe(startHandler, control);
-    subscribe(readReturnHandler, sm_port);
-    subscribe(writeReturnHandler, sm_port);
+    subscribe(commandReturnHandler, sm_port);
   }
 
 
@@ -34,26 +33,15 @@ public class Client extends ComponentDefinition {
     public void handle(Start event) {
       //logger.info("Client started on node {}!", self);
       if (self.getIp().toString().contains(".3") || self.group == 3) {
-        //logger.info("trying to send read");
-        trigger(new Read(21), sm_port);
-        //trigger(new Write(1, 44), sm_port);
-        //trigger(new Read(1), sm_port);
+        trigger(new Command(22), sm_port); //read
       }
     }
   };
 
-  Handler<ReadReturn> readReturnHandler = new Handler<ReadReturn>() {
+  Handler<CommandReturn> commandReturnHandler = new Handler<CommandReturn>() {
     @Override
-    public void handle(ReadReturn rr) {
-      logger.info("received {}", rr);
-      //trigger(new Write(300, 355873), sm_port);
-    }
-  };
-
-  Handler<WriteReturn> writeReturnHandler = new Handler<WriteReturn>() {
-    @Override
-    public void handle(WriteReturn wr) {
-      logger.info("received {} on node {}!", wr, self);
+    public void handle(CommandReturn commandReturn) {
+      logger.info("{} received {}", self, commandReturn);
     }
   };
 
@@ -63,4 +51,5 @@ public class Client extends ComponentDefinition {
       this.self = self;
     }
   }
+
 }

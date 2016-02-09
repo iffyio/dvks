@@ -20,7 +20,6 @@ public class SM extends ComponentDefinition {
   private final HashMap<Integer, Integer> store;
 
 
-  //Positive<BebPort> beb_port = requires(BebPort.class);
   Negative<SMPort> sm_port = provides(SMPort.class);
   //Positive<Timer> timer = requires(Timer.class);
   Positive<Network> network = requires(Network.class);
@@ -40,13 +39,9 @@ public class SM extends ComponentDefinition {
 
 
     subscribe(startHandler, control);
-    subscribe(readHandler, sm_port);
-    subscribe(writeHandler, sm_port);
+    subscribe(read_write_Handler, sm_port);
     subscribe(deliverHandler, paxos_port);
-    //subscribe(readCommandHandler, network);
-    //subscribe(readCommandReturnHandler, network);
-    //subscribe(writeCommandHandler, network);
-    //subscribe(writeCommandReturnHandler, network);
+    subscribe(returnMessageHandler, network);
   }
 
 
@@ -56,18 +51,11 @@ public class SM extends ComponentDefinition {
     }
   };
 
-  Handler<Read> readHandler = new Handler<Read>() {
+  Handler<Command> read_write_Handler = new Handler<Command>() {
     @Override
-    public void handle(Read read) {
-      /*for (TAddress node : nodes) {
-        if (Routing.get_group(read.key) == node.group) {
-          ReadCommand rc = new ReadCommand(self, node, read.key);
-          logger.info("sending {} to {}!", rc, node);
-          trigger(rc, network);
-        }
-      }*/
-      logger.info("{} trigger new propose {}", self, read);
-      trigger(new Propose(read), paxos_port);
+    public void handle(Command c) {
+      logger.info("{} trigger new propose {}", self, c);
+      trigger(new Propose(c), paxos_port);
     }
   };
 
@@ -75,55 +63,44 @@ public class SM extends ComponentDefinition {
     @Override
     public void handle(Deliver deliver) {
       PaxosCommand c = deliver.command;
-      logger.info("{} delivered {}", self, c);
-    }
-  };
-
-  Handler<Write> writeHandler = new Handler<Write>() {
-    @Override
-    public void handle(Write write) {
-      for (TAddress node : nodes) {
-        if (Routing.get_group(write.key) == node.group) {
-          WriteCommand wc = new WriteCommand(self, node, write.key, write.value);
-          logger.info("sending {} to {}!", wc, node);
-          trigger(wc, network);
-        }
+      TAddress sender = c.getSource();
+      if (c instanceof WriteCommand) {
+        store.put(c.key, c.value);
+      } else if (sender.equals(self)) {
+        logger.info("{} delivered {}", self, c);
       }
+      if (sender.group != self.group)
+        send_return_message(c);
+      if (sender.equals(self))
+        trigger_sm_return(c);
     }
   };
 
-  Handler<ReadCommand> readCommandHandler = new Handler<ReadCommand>() {
+  private void send_return_message(PaxosCommand c) {
+    TAddress sender = c.getSource();
+    if (c instanceof WriteCommand)
+      trigger(new WriteReturnMessage(self, sender, c.key, store.get(c.key)), network);
+    else
+      trigger(new ReadReturnMessage(self, sender, c.key, store.get(c.key)), network);
+    logger.info("{} sends {} to {}", self, c, sender);
+  }
+
+  Handler<ReturnMessage> returnMessageHandler = new Handler<ReturnMessage>() {
     @Override
-    public void handle(ReadCommand rc) {
-      logger.info("received {}! ... reading... returning...", rc);
-      trigger(new ReadCommandReturn(self, rc.getSource(), rc.key, store.get(rc.key)), network);
+    public void handle(ReturnMessage returnMessage) {
+      logger.info("{} delivered {}", self, returnMessage);
+      trigger_sm_return(returnMessage);
     }
   };
 
-  Handler<ReadCommandReturn> readCommandReturnHandler = new Handler<ReadCommandReturn>() {
-    @Override
-    public void handle(ReadCommandReturn rcr) {
-      logger.info("received {}!", rcr);
-      trigger(new ReadReturn(rcr.key, rcr.value), sm_port);
-    }
-  };
+  //2 ways to complete a command on the state machine
+  private void trigger_sm_return(PaxosCommand c) {
+      trigger(new CommandReturn(c.key, store.get(c.key)), sm_port);
+  }
 
-  Handler<WriteCommand> writeCommandHandler = new Handler<WriteCommand>() {
-    @Override
-    public void handle(WriteCommand wc) {
-      store.put(wc.key,wc.value);
-      logger.info("received {}! ... writing ... returning.. me {}.", wc, self);
-      trigger(new WriteCommandReturn(self, wc.getSource(), wc.key, wc.value), network);
-    }
-  };
-
-  Handler<WriteCommandReturn> writeCommandReturnHandler = new Handler<WriteCommandReturn>() {
-    @Override
-    public void handle(WriteCommandReturn wcr) {
-      logger.info("received {}!", wcr);
-      trigger(new WriteReturn(wcr.key, wcr.value), sm_port);
-    }
-  };
+  private void trigger_sm_return(ReturnMessage c) {
+      trigger(new CommandReturn(c.key, store.get(c.key)), sm_port);
+  }
 
 
   public static class Init extends se.sics.kompics.Init<SM> {

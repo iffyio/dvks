@@ -3,7 +3,9 @@ package ports.paxos;
 import ports.sm.Command;
 import se.sics.kompics.KompicsEvent;
 
-public class Propose implements KompicsEvent {
+import java.io.Serializable;
+
+public class Propose implements KompicsEvent, Serializable {
 
   public final Command command;
 

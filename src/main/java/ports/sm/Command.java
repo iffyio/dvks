@@ -5,6 +5,7 @@ import se.sics.kompics.KompicsEvent;
 public class Command implements KompicsEvent{
 
   public int key, value;
+  public boolean isRead = true;
 
   public Command (int key) {
     this.key = key;
@@ -13,6 +14,7 @@ public class Command implements KompicsEvent{
   public Command (int key, int value) {
     this(key);
     this.value = value;
+    isRead = false;
   }
 
 }

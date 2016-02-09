@@ -9,9 +9,6 @@ import ports.epfd.Restore;
 import ports.epfd.Suspect;
 import ports.paxos.*;
 import ports.sm.Command;
-import ports.sm.Read;
-import ports.sm.ReadReturn;
-import ports.sm.WriteReturn;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
@@ -55,14 +52,8 @@ public class Paxos extends ComponentDefinition {
     public void handle(Propose propose) {
       logger.info("{} recived new propose {}", self, propose.command);
       Command c = propose.command;
-      pending.add(c);
-      TAddress leader = Routing.get_leader(c.key, alive);
+      int c_group = Routing.get_group(c.key);
       PaxosCommand cmd;
-      if (c instanceof Read)
-        cmd = new ReadCommand(self, leader, c.key);
-      else
-        cmd = new WriteCommand(self, leader, c.key, c.value);
-      trigger(cmd, network);
     }
   };
 
