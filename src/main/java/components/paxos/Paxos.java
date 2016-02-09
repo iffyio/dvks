@@ -33,6 +33,7 @@ public class Paxos extends ComponentDefinition {
     subscribe(suspectHandler, epfd_port);
     subscribe(restoreHandler, epfd_port);
     subscribe(proposeHandler, paxos_port);
+    subscribe(proposeRequestHandler, network);
     subscribe(decideHandler, network);
   }
 
@@ -49,10 +50,35 @@ public class Paxos extends ComponentDefinition {
   Handler<Propose> proposeHandler = new Handler<Propose>() {
     @Override
     public void handle(Propose propose) {
-      logger.info("{} recived new propose {}", self, propose.command);
+      logger.info("{} received new propose {}", self, propose.command);
       Command c = propose.command;
       int c_group = Routing.get_group(c.key);
-      PaxosCommand cmd;
+      if (c_group != self.group) {
+        for (TAddress node : nodes) {
+          if (node.group == c_group)
+            trigger(new ProposeRequest(self, node, c), network);
+        }
+      }else {
+        PaxosCommand pc = new PaxosCommand(self, c);
+        propose(pc);
+      }
+    }
+  };
+
+  private void propose(PaxosCommand pc) {
+    logger.info("{} proposing {}", self, pc);
+  }
+
+  Handler<ProposeRequest> proposeRequestHandler = new Handler<ProposeRequest>() {
+    @Override
+    public void handle(ProposeRequest pr) {
+      TAddress leader = Routing.get_leader(self.group, alive);
+      if (!leader.equals(self)) {
+        trigger(new ProposeRequest(pr.getSource(), leader, pr.command), network);
+      }else{
+        PaxosCommand pc = new PaxosCommand(pr.getSource(), pr.command);
+        propose(pc);
+      }
     }
   };
 
@@ -63,6 +89,8 @@ public class Paxos extends ComponentDefinition {
       trigger(new Deliver(decide.command), paxos_port);
     }
   };
+
+
 
 
 

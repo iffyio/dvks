@@ -2,7 +2,11 @@ package ports.sm;
 
 import se.sics.kompics.KompicsEvent;
 
-public class Command implements KompicsEvent{
+import java.io.Serializable;
+
+public class Command implements KompicsEvent, Serializable{
+
+  private static final long serialVersionUID = 4321928238L;
 
   public int key, value;
   public boolean isRead = true;
