@@ -64,7 +64,7 @@ public class SM extends ComponentDefinition {
     public void handle(Deliver deliver) {
       PaxosCommand c = deliver.command;
       TAddress sender = c.getSource();
-      if (c instanceof WriteCommand) {
+      if (!c.isRead) {
         store.put(c.key, c.value);
       } else if (sender.equals(self)) {
         logger.info("{} delivered {}", self, c);
@@ -78,27 +78,21 @@ public class SM extends ComponentDefinition {
 
   private void send_return_message(PaxosCommand c) {
     TAddress sender = c.getSource();
-    if (c instanceof WriteCommand)
-      trigger(new WriteReturnMessage(self, sender, c.key, store.get(c.key)), network);
-    else
-      trigger(new ReadReturnMessage(self, sender, c.key, store.get(c.key)), network);
+    boolean isRead = c.isRead;
+    trigger(new CommandReturnMessage(self, sender, c.key, store.get(c.key), isRead), network);
     logger.info("{} sends {} to {}", self, c, sender);
   }
 
-  Handler<ReturnMessage> returnMessageHandler = new Handler<ReturnMessage>() {
+  Handler<CommandReturnMessage> returnMessageHandler = new Handler<CommandReturnMessage>() {
     @Override
-    public void handle(ReturnMessage returnMessage) {
+    public void handle(CommandReturnMessage returnMessage) {
       logger.info("{} delivered {}", self, returnMessage);
-      trigger_sm_return(returnMessage);
+      //trigger_sm_return(returnMessage);
     }
   };
 
   //2 ways to complete a command on the state machine
   private void trigger_sm_return(PaxosCommand c) {
-      trigger(new CommandReturn(c.key, store.get(c.key)), sm_port);
-  }
-
-  private void trigger_sm_return(ReturnMessage c) {
       trigger(new CommandReturn(c.key, store.get(c.key)), sm_port);
   }
 

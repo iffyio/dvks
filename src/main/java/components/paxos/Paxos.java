@@ -33,7 +33,6 @@ public class Paxos extends ComponentDefinition {
     subscribe(suspectHandler, epfd_port);
     subscribe(restoreHandler, epfd_port);
     subscribe(proposeHandler, paxos_port);
-    subscribe(paxosCommandHandler, network);
     subscribe(decideHandler, network);
   }
 
@@ -57,23 +56,6 @@ public class Paxos extends ComponentDefinition {
     }
   };
 
-  Handler<PaxosCommand> paxosCommandHandler = new Handler<PaxosCommand>() {
-    @Override
-    public void handle(PaxosCommand pc) {
-      TAddress leader = Routing.get_leader(pc.key, alive);
-      if(pc instanceof ReadCommandReturn || pc instanceof WriteCommandReturn) {
-        trigger(new Deliver(pc), paxos_port);
-      }else if (leader.equals(self)) {
-        for (TAddress node : nodes) {
-          if (Routing.get_group(pc.key) == node.group) {
-            Decide dc = new Decide(self, node, pc);
-            logger.info("{} sending {} to {}!", self, dc, node);
-            trigger(dc, network);
-          }
-        }
-      }
-    }
-  };
 
   Handler<Decide> decideHandler = new Handler<Decide>() {
     @Override

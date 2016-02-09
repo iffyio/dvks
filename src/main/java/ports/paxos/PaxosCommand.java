@@ -12,6 +12,7 @@ public class PaxosCommand extends TMessage implements Serializable{
   private static final long serialVersionUID = 43359285678L;
   public int key;
   public Integer value = null;
+  public boolean isRead = true;
 
   public PaxosCommand (TAddress src, TAddress dst, int key) {
     super(src, dst, Transport.TCP);
@@ -20,6 +21,7 @@ public class PaxosCommand extends TMessage implements Serializable{
   public PaxosCommand (TAddress src, TAddress dst, int key, int value) {
     this(src, dst, key);
     this.value = value;
+    isRead = false;
   }
 
 }
