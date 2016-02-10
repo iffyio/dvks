@@ -9,16 +9,14 @@ import java.io.Serializable;
 public class CommandReturnMessage extends TMessage implements Serializable{
 
   private static final long serialVersionUID = -1733233218L;
-  public int key, value;
-  public boolean isRead = true;
+  public Command command;
 
-  public CommandReturnMessage (TAddress src, TAddress dst, int key, int value, boolean isRead) {
+  public CommandReturnMessage (TAddress src, TAddress dst, Command command) {
     super(src, dst, Transport.TCP);
-    this.key = key; this.value = value;
-    this.isRead = isRead;
+    this.command = command;
   }
 
   public String toString() {
-    return "readReturnMessage " + key + " => " + value;
+    return  String.format("<CRM | %s> from %s", command.toString(), super.getSource());
   }
 }

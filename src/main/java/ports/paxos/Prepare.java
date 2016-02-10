@@ -18,4 +18,8 @@ public class Prepare extends TMessage implements Serializable{
     super(src, dst, Transport.TCP);
     this.pts = pts; this.al = al; this.t = t;
   }
+
+  public String toString() {
+    return String.format("%s <Prepare |%d,%d,%d> %s", super.getSource(), pts, al, t, super.getDestination());
+  }
 }

@@ -32,8 +32,11 @@ public class Client extends ComponentDefinition {
   Handler<Start> startHandler = new Handler<Start>() {
     public void handle(Start event) {
       //logger.info("Client started on node {}!", self);
-      if (self.getIp().toString().contains(".3") || self.group == 3) {
-        trigger(new Command(22), sm_port); //read
+      if (self.getIp().toString().contains(".3")) {
+        //trigger(new Command(22, 4), sm_port); //read
+        trigger(new Command(21), sm_port); //read
+      }else if (self.getIp().toString().contains(".5")){
+        trigger(new Command(21, 4), sm_port); //read
       }
     }
   };
@@ -42,6 +45,8 @@ public class Client extends ComponentDefinition {
     @Override
     public void handle(CommandReturn commandReturn) {
       logger.info("{} received {}", self, commandReturn);
+      if (!commandReturn.isRead)
+        trigger(new Command(21), sm_port); //read
     }
   };
 

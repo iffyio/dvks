@@ -6,16 +6,20 @@ import msg.TMessage;
 import ports.sm.Command;
 import se.sics.kompics.network.Transport;
 
-public class Decide extends TMessage {
+import java.io.Serializable;
 
-  public Command command;
+public class Decide extends TMessage implements Serializable{
 
-  public Decide(TAddress src, TAddress dst, Command command) {
+  private static final long serialVersionUID = 6609839983L;
+
+  public int pts, l, t;//l = length of chosen sequence
+
+  public Decide(TAddress src, TAddress dst, int pts, int l, int t) {
     super(src, dst, Transport.TCP);
-    this.command = command;
+    this.pts = pts; this.l = l; this.t = t;
   }
 
   public String toString() {
-    return "Decide " + command.toString();
+    return super.getSource() + "<Decide |" + pts + "," + l + "," + t + ">" + super.getDestination();
   }
 }

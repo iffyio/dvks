@@ -1,5 +1,6 @@
 package ports.paxos;
 
+import main.Routing;
 import msg.TAddress;
 import msg.TMessage;
 import se.sics.kompics.network.Transport;
@@ -21,5 +22,9 @@ public class PrepareAck extends TMessage implements Serializable{
     super(src, dst, Transport.TCP);
     this.pts = pts; this.ats = ats; this.al = al; this.t = t;
     this.vsuf = vsuf;
+  }
+
+  public String toString() {
+    return String.format("%s <PrepareAck |%d,%d,%s,%d,%d> %s", super.getSource(), pts, ats, Routing.vsuf_to_s(vsuf), al, t, super.getDestination());
   }
 }

@@ -17,4 +17,8 @@ public class ProposeRequest extends TMessage implements Serializable{
     super(src, dst, Transport.TCP);
     this.command = command;
   }
+
+  public String toString() {
+    return  String.format("<PRQ | %s> from %s", command.toString(), super.getSource());
+  }
 }

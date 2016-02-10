@@ -1,8 +1,10 @@
 package main;
 
 import msg.TAddress;
+import ports.paxos.PaxosCommand;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 
 public class Routing {
 
@@ -17,5 +19,13 @@ public class Routing {
       if (node.group == msg_group && (leader == null || node.rank < leader.rank))
         leader = node;
     return leader;
+  }
+
+  public static String vsuf_to_s(LinkedList<PaxosCommand> l) {
+    StringBuffer sb = new StringBuffer();
+    for (PaxosCommand pc : l)
+      sb.append(pc.toString()).append(",");
+    if (sb.toString().equals("")) sb.append("empty vsuf");
+    return sb.toString();
   }
 }

@@ -4,6 +4,7 @@ import main.Routing;
 import msg.TAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ports.paxos.AcceptAck;
 import ports.epfd.EPFDPort;
 import ports.epfd.Restore;
 import ports.epfd.Suspect;
@@ -20,7 +21,7 @@ public class Paxos extends ComponentDefinition {
 
   private final HashSet<TAddress> nodes, alive, group;
   private final TAddress self;
-  private final LinkedList<PaxosCommand> pending, proposedValues;
+  private final LinkedList<PaxosCommand> proposedValues;
   private int t = 0, prepts = 0, ats = 0, al = 0, pts = 0,  pl = 0, N = 0;
   private LinkedList<PaxosCommand> av, pv;
   private HashMap<TAddress, AcceptorData> readList;
@@ -34,7 +35,6 @@ public class Paxos extends ComponentDefinition {
     nodes = init.nodes;
     alive = new HashSet<>(nodes);
     group = new HashSet<>();
-    pending = new LinkedList<>();
     av = new LinkedList<>();
     pv = new LinkedList<>();
     proposedValues = new LinkedList<>();
@@ -59,7 +59,12 @@ public class Paxos extends ComponentDefinition {
     subscribe(restoreHandler, epfd_port);
     subscribe(proposeHandler, paxos_port);
     subscribe(proposeRequestHandler, network);
+    subscribe(prepareHandler, network);
+    subscribe(prepareAckHandler, network);
+    subscribe(acceptHandler, network);
+    subscribe(acceptAckHandler, network);
     subscribe(decideHandler, network);
+    subscribe(nackHandler, network);
   }
 
   Positive<Network> network = requires(Network.class);
@@ -112,7 +117,7 @@ public class Paxos extends ComponentDefinition {
     }else if (!pv.contains(v)) {
       pv.add(v);
       for (TAddress node : group) {
-        if (readList.get(node) == null) {
+        if (readList.get(node) != null) {
           LinkedList<PaxosCommand> vsuf = new LinkedList<>();
           vsuf.add(v);
           trigger(new Accept(self, node, pts, vsuf, pv.size() - 1, t), network);
@@ -125,6 +130,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(Prepare prepare) {
       t = Math.max(t, prepare.t) + 1;
+      logger.info("{}", prepare);
       if (prepare.pts < prepts)
         trigger(new Nack(self, prepare.getSource(), prepare.pts, t), network); //NACK if already promised
       else {
@@ -139,10 +145,11 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(PrepareAck pa) {
       t = Math.max(t, pa.t) + 1;
+      logger.info("{}", pa);
       if (pts == pa.pts) {
         TAddress q = pa.getSource();
-        readList.put(q, new AcceptorData(pa.ats,pa.vsuf));
-        decided.put(q, pa.al);
+        readList.put(q, new AcceptorData(pa.ats,pa.vsuf));//p's knowledge of q's accepted seq
+        decided.put(q, pa.al); //p's knowledge of q's decided seq
         if (readList.size() == N/2 + 1) {
           AcceptorData ad = getHighestData();
           pv.addAll(ad.vsuf); //extend sequence
@@ -150,28 +157,97 @@ public class Paxos extends ComponentDefinition {
             if (!pv.contains(v))
               pv.add(v);
           for (TAddress node : group){
-            if (readList.containsKey(node)){
+            if (readList.containsKey(node)){//q has replied with promise
               int l = decided.get(node);
-
-              ///here actually
-              trigger(new Accept(self, node, pts, suffix(pv, l), l, t), network);
+              trigger(new Accept(self, node, pts, suffix(pv, l), l, t), network);//custom suffix for each q
             }
           }
-        }else if (readList.size() > N/2 + 1) {
-          ///
+        }else if (readList.size() > N/2 + 1) {//q is late with promise
+          trigger(new Accept(self, q, pts, suffix(pv, pa.al), pa.al, t), network);
+          if (pl != 0)
+            trigger(new Decide(self, q, pts, pl, t), network);
         }
       }
     }
   };
+
+  Handler<Accept> acceptHandler = new Handler<Accept>() {
+    @Override
+    public void handle(Accept ac) {
+      t = Math.max(t, ac.t) + 1;
+      logger.info("{}", ac);
+      TAddress p = ac.getSource();
+      if (ac.pts != prepts)
+        trigger(new Nack(self, p, ac.pts, t), network);
+      else{
+        ats = ac.pts;
+        truncate_av(ac.l); //ac.l = offset to append ac.vsuf to q's av
+        av.addAll(ac.vsuf);
+        trigger(new AcceptAck(self, p, ac.pts, av.size(), t), network);//send q's largest accepted sequence to proposer
+      }
+    }
+  };
+
+  Handler<AcceptAck> acceptAckHandler = new Handler<AcceptAck>() {
+    @Override
+    public void handle(AcceptAck ak) {
+      t = Math.max(t, ak.t) + 1;
+      logger.info("{}", ak);
+      TAddress q = ak.getSource();
+      if (pts == ak.pts) {
+        accepted.put(q, ak.l);
+        if (pl < ak.l && is_supported(ak.l)){
+          pl = ak.l;
+          for (TAddress node : group) {
+            if (readList.containsKey(node)) {
+              trigger(new Decide(self, node, pts, pl, t), network);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  Handler<Decide> decideHandler = new Handler<Decide>() {
+    @Override
+    public void handle(Decide dc) {
+      t = Math.max(t, dc.t) + 1;
+      logger.info("{}", dc);
+      if (dc.pts == prepts) {
+        while (al < dc.l) {
+          PaxosCommand pc = av.get(al++); //zero based index bug
+          trigger(new Deliver(pc.command), paxos_port);
+        }
+      }
+    }
+  };
+
+  private boolean is_supported(int seq) {
+    int count = 0;
+    for (int acc_seq : accepted.values())
+      if(acc_seq >= seq)
+        count++;
+    return count > N/2;
+  }
+
+  private void truncate_av( int offset){
+    int i = av.size();
+    if (offset < i) {
+      av = prefix(av,offset);
+    }
+  }
 
 
   Handler<Nack> nackHandler = new Handler<Nack>() {
     @Override
     public void handle(Nack nack) {
       t = Math.max(t, nack.t) + 1;
+      logger.info("{}", nack);
       if (pts == nack.pts) {
         pts = 0;
         //abort
+        logger.info("{}",nack);
+        System.exit(1);
       }
     }
   };
@@ -185,11 +261,11 @@ public class Paxos extends ComponentDefinition {
     return ad;
   }
 
-  private LinkedList<PaxosCommand> prefix(LinkedList<PaxosCommand> list, int index) {
+  private LinkedList<PaxosCommand> prefix(LinkedList<PaxosCommand> list, int items) {
     LinkedList<PaxosCommand> l = new LinkedList<>();
-    int i = 0;
+    int i = 1;
     for (PaxosCommand pc : list) {
-      if (i > index)
+      if (i > items)
         break;
       else
         l.add(pc);
@@ -198,11 +274,11 @@ public class Paxos extends ComponentDefinition {
     return l;
   }
 
-  private LinkedList<PaxosCommand> suffix(LinkedList<PaxosCommand> list, int index) {
+  private LinkedList<PaxosCommand> suffix(LinkedList<PaxosCommand> list, int offset) {
     LinkedList<PaxosCommand> l = new LinkedList<>();
-    int i = 0;
+    int i = 1;
     for (PaxosCommand pc : list) {
-      if (i > index)
+      if (i > offset)
         l.add(pc);
       i++;
     }
@@ -216,6 +292,7 @@ public class Paxos extends ComponentDefinition {
       if (!leader.equals(self)) {
         trigger(new ProposeRequest(pr.getSource(), leader, pr.command), network);
       }else{
+        logger.info("leader: preq {}", pr);
         PaxosCommand pc = new PaxosCommand(pr.getSource(), pr.command); //using senders addr as source not necessary
         propose(pc);
       }
@@ -223,12 +300,7 @@ public class Paxos extends ComponentDefinition {
   };
 
 
-  Handler<Decide> decideHandler = new Handler<Decide>() {
-    @Override
-    public void handle(Decide decide) {
-      trigger(new Deliver(decide.command), paxos_port);
-    }
-  };
+
 
 
 

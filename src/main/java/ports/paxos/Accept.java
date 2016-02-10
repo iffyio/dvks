@@ -1,5 +1,6 @@
 package ports.paxos;
 
+import main.Routing;
 import msg.TAddress;
 import msg.TMessage;
 import se.sics.kompics.network.Transport;
@@ -18,5 +19,9 @@ public class Accept extends TMessage implements Serializable{
     super(src, dst, Transport.TCP);
     this.l = l; this.t = t; this.pts = pts;
     this.vsuf = vsuf;
+  }
+
+  public String toString() {
+    return String.format("%s <Accept |%d,%s,%d,%d> %s", super.getSource(), pts, Routing.vsuf_to_s(vsuf), l, t, super.getDestination());
   }
 }

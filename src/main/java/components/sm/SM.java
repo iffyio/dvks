@@ -17,7 +17,9 @@ public class SM extends ComponentDefinition {
   private static final Logger logger = LoggerFactory.getLogger(SM.class);
   private final TAddress self;
   private final HashSet<TAddress> nodes;
+  private final HashSet<Command> pending;
   private final HashMap<Integer, Integer> store;
+  private int ts = 0;
 
 
   Negative<SMPort> sm_port = provides(SMPort.class);
@@ -29,6 +31,7 @@ public class SM extends ComponentDefinition {
     this.self = init.self;
     this.nodes = init.nodes;
     store = new HashMap<>();
+    pending = new HashSet<>();
 
     if (self.group % 2 == 0)
       for (int i = 2; i <= 20; i += 2)
@@ -56,6 +59,8 @@ public class SM extends ComponentDefinition {
     public void handle(Command c) {
       logger.info("{} trigger new propose {}", self, c);
       c.proposer = self;
+      c.ts = ++ts;
+      pending.add(c);
       trigger(new Propose(c), paxos_port);
     }
   };
@@ -70,25 +75,36 @@ public class SM extends ComponentDefinition {
 
       if (sender.group != self.group)
         send_return_message(c);
-      if (sender.equals(self)) {
-        logger.info("{} delivered {}", self, c);
-        trigger(new CommandReturn(c.key, store.get(c.key), c.isRead), sm_port);
+      else if (sender.equals(self)) {
+        handle_delivery(c);
       }
     }
   };
 
+  private void handle_delivery(Command c) {
+    logger.info("{} sm-delivered {}", self, c);
+    if (pending.contains(c)) {
+       pending.remove(c);
+      trigger(new CommandReturn(c.key, store.get(c.key), c.isRead), sm_port);
+    }
+  }
+
   private void send_return_message(Command c) {
     TAddress sender = c.proposer;
-    boolean isRead = c.isRead;
     logger.info("{} sends {} to {}", self, c, sender);
-    trigger(new CommandReturnMessage(self, sender, c.key, store.get(c.key), isRead), network);
+    c.value = store.get(c.key); //answer read/write query
+    trigger(new CommandReturnMessage(self, sender, c), network);
   }
 
   Handler<CommandReturnMessage> returnMessageHandler = new Handler<CommandReturnMessage>() {
     @Override
     public void handle(CommandReturnMessage crm) {
-      logger.info("{} delivered {}", self, crm);
-      trigger(new CommandReturn(crm.key, crm.value, crm.isRead), sm_port);
+      Command c = crm.command;
+      if (pending.contains(c)) {
+        logger.info("{} sm-delivered from group {} {}", self, Routing.get_group(c.key), c);
+        pending.remove(c);
+        trigger(new CommandReturn(c.key, c.value, c.isRead), sm_port);
+      }
     }
   };
 

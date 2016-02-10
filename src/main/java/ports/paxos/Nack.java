@@ -17,4 +17,7 @@ public class Nack extends TMessage implements Serializable {
     super(src, dst, Transport.TCP);
     this.pts = pts; this.t = t;
   }
+  public String toString() {
+    return String.format("%s <Nack |%d,%d> %s", super.getSource(), pts, t, super.getDestination());
+  }
 }

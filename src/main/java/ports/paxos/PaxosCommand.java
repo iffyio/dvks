@@ -22,7 +22,7 @@ public class PaxosCommand implements Serializable, KompicsEvent{
   }
 
   public String toString() {
-    return "<PaxosCommand | " + command.toString() + " >";
+    return "<PCmd | " + command.toString() + " >";
   }
 
   @Override
