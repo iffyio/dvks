@@ -290,11 +290,15 @@ public class Paxos extends ComponentDefinition {
     public void handle(ProposeRequest pr) {
       TAddress leader = Routing.get_leader(self.group, alive);
       if (!leader.equals(self)) {
-        trigger(new ProposeRequest(pr.getSource(), leader, pr.command), network);
+        trigger(new ProposeRequest(pr.getSource(), leader, pr.command), network);//use senders addresss as source instead
       }else{
-        logger.info("leader: preq {}", pr);
+        logger.info("leader {}: preq {}", self, pr); //get from all other members
         PaxosCommand pc = new PaxosCommand(pr.getSource(), pr.command); //using senders addr as source not necessary
-        propose(pc);
+        if (!proposedValues.contains(pc) && !pv.contains(pc)) {
+          logger.info("proposing {}", pc);
+          propose(pc);
+        }else
+        logger.info("not proposing duplicate {}", pc);
       }
     }
   };

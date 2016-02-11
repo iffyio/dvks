@@ -34,7 +34,8 @@ public class Client extends ComponentDefinition {
       //logger.info("Client started on node {}!", self);
       if (self.getIp().toString().contains(".3")) {
         //trigger(new Command(22, 4), sm_port); //read
-        trigger(new Command(21), sm_port); //read
+        //trigger(new Command(21), sm_port); //read
+        trigger(new Command(20), sm_port); //read
       }else if (self.getIp().toString().contains(".5")){
         trigger(new Command(21, 4), sm_port); //read
       }
