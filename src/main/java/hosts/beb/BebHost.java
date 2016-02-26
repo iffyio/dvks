@@ -20,7 +20,7 @@ public class BebHost extends ComponentDefinition{
     HashSet<TAddress> nodes = init.nodes;
     Component beb = create(Beb.class, new Beb.Init(self, nodes));
     Component network = create(NettyNetwork.class, new NettyInit(self));
-    Component client = create(Client.class, new Client.Init(self));
+    Component client = create(Client.class, new Client.Init(self, 3));
 
     connect(beb.getNegative(Network.class), network.getPositive(Network.class), Channel.TWO_WAY);
     connect(client.getNegative(BebPort.class), beb.getPositive(BebPort.class), Channel.TWO_WAY);

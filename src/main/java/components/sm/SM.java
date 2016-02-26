@@ -36,7 +36,7 @@ public class SM extends ComponentDefinition {
       store.put(i, i * 4);
       i+=3;
     }
-
+    //print_store();
 
     subscribe(startHandler, control);
     subscribe(commandHandler, sm_port);

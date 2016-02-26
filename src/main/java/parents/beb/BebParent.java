@@ -34,7 +34,7 @@ public class BebParent extends ComponentDefinition{
     Component beb = create(Beb.class, new Beb.Init(self, nodes));
     connect(beb.getNegative(Network.class), network, Channel.TWO_WAY);
 
-    Component client = create(Client.class, new Client.Init(self));
+    Component client = create(Client.class, new Client.Init(self, 2));
     connect(client.getNegative(BebPort.class), beb.getPositive(BebPort.class), Channel.TWO_WAY);
 
     //logger.info("Beb parent started on node {}!", self);

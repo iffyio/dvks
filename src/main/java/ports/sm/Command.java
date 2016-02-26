@@ -11,7 +11,6 @@ public class Command implements KompicsEvent, Serializable{
 
   public Integer key, value, ref;
   public TAddress proposer;
-  public boolean CAS_SUCCESS;
   public int ts;
   public Op op;
 

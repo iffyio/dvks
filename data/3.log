@@ -1,0 +1,3 @@
+READ 14
+CAS 14 -1
+READ 14

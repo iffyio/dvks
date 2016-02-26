@@ -30,7 +30,7 @@ public class ClientHost extends ComponentDefinition{
     //Component beb = create(Beb.class, new Beb.Init(self, nodes));
     Component network = create(NettyNetwork.class, new NettyInit(self));
     Component stateMachine = create(SM.class, new SM.Init(self, nodes));
-    Component Client = create(Client.class, new Client.Init(self));
+    Component Client = create(Client.class, new Client.Init(self, init.id));
 
     //connect(beb.getNegative(Network.class), network.getPositive(Network.class), Channel.TWO_WAY);
     //connect(stateMachine.getNegative(BebPort.class), beb.getPositive(BebPort.class), Channel.TWO_WAY);
@@ -43,9 +43,11 @@ public class ClientHost extends ComponentDefinition{
   public static class Init extends se.sics.kompics.Init<ClientHost> {
     public final TAddress self;
     public final HashSet<TAddress> nodes;
-    public Init(TAddress self, HashSet<TAddress> nodes) {
+    public int id;
+    public Init(TAddress self, int id, HashSet<TAddress> nodes) {
       this.self = self;
       this.nodes = nodes;
+      this.id = id;
     }
   }
 

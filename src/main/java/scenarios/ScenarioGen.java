@@ -20,11 +20,11 @@ public class ScenarioGen {
   static String addr_prefix = "192.193.0.";
   static HashSet<TAddress> nodes;
   static int port = 10000;
-  static final int N = 5;
+  static final int N = 9;
 
   static{
     nodes = new HashSet<>();
-    for (int i = 1; i <= N; i++) {
+    for (int i = 0; i < N; i++) {
       try {
         InetAddress ip = InetAddress.getByName(addr_prefix + i);
         TAddress addr = new TAddress(ip, port);
@@ -91,7 +91,7 @@ public class ScenarioGen {
 
         @Override
         public Init getComponentInit() {
-          return new ClientParent.Init(selfAdr, nodes);
+          return new ClientParent.Init(selfAdr, self, nodes);
         }
 
         public String toString() {
@@ -160,14 +160,14 @@ public class ScenarioGen {
         SimulationScenario.StochasticProcess clients = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(6, startClientOp, new BasicIntSequentialDistribution(0));
+            raise(N, startClientOp, new BasicIntSequentialDistribution(0));
           }
         };
 
         SimulationScenario.StochasticProcess epfdclients = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(6, epfdClientOp, new BasicIntSequentialDistribution(0));
+            raise(N, epfdClientOp, new BasicIntSequentialDistribution(0));
           }
         };
 

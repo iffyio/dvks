@@ -32,7 +32,7 @@ public class ClientParent extends ComponentDefinition{
     this.nodes = init.nodes;
 
     Component stateMachine = create(SM.class, new SM.Init(self, nodes));
-    Component client = create(Client.class, new Client.Init(self));
+    Component client = create(Client.class, new Client.Init(self, init.id));
     Component epfd = create(EPFD.class, new EPFD.Init(self, nodes));
     Component paxos = create(Paxos.class, new Paxos.Init(self, nodes));
 
@@ -43,6 +43,7 @@ public class ClientParent extends ComponentDefinition{
     connect(stateMachine.getNegative(Network.class), network, Channel.TWO_WAY);
     connect(stateMachine.getNegative(PaxosPort.class), paxos.getPositive(PaxosPort.class), Channel.TWO_WAY);
     connect(client.getNegative(SMPort.class), stateMachine.getPositive(SMPort.class), Channel.TWO_WAY);
+    connect(client.getNegative(Timer.class), timer, Channel.TWO_WAY);
 
     //logger.info("clientParent started on node {}!", self);
   }
@@ -50,9 +51,11 @@ public class ClientParent extends ComponentDefinition{
   public static class Init extends se.sics.kompics.Init<ClientParent> {
     public final TAddress self;
     public final HashSet<TAddress> nodes;
-    public Init(TAddress self, HashSet<TAddress> nodes) {
+    public int id;
+    public Init(TAddress self, int id, HashSet<TAddress> nodes) {
       this.self = self;
       this.nodes = nodes;
+      this.id = id;
     }
   }
 
