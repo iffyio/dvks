@@ -7,6 +7,5 @@ public class SMPort extends PortType {
   {
     request(Command.class);
     indication(CommandReturn.class);
-    //indication(CommandReturnMessage.class);
   }
 }

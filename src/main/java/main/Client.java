@@ -42,12 +42,18 @@ public class Client extends ComponentDefinition {
     }
   };
 
+  int k = 0;
   Handler<CommandReturn> commandReturnHandler = new Handler<CommandReturn>() {
     @Override
     public void handle(CommandReturn commandReturn) {
       logger.info("{} received {}", self, commandReturn);
-      if (commandReturn.cmd.op == Op.WRITE)
+      if (commandReturn.cmd.op == Op.WRITE) {
         trigger(new Command(21), sm_port); //read
+      }else if (k == 0 && commandReturn.cmd.op == Op.READ && commandReturn.cmd.key == 20){
+        k++;
+        trigger(new Command(20, -1, commandReturn.value), sm_port);
+        trigger(new Command(20), sm_port); //read
+      }
     }
   };
 

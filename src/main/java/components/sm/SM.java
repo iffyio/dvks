@@ -109,7 +109,7 @@ public class SM extends ComponentDefinition {
 
   private boolean compare_and_swap(Command c) {
     Integer v = store.get(c.key);
-    if (v == null || Integer.compare(v, c.ref) != 0) {
+    if (v == null || c.ref == null || Integer.compare(v, c.ref) != 0) {
       return false;
     }else{
       store.put(c.key, c.value);
