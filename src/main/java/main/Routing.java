@@ -9,7 +9,8 @@ import java.util.LinkedList;
 public class Routing {
 
   public static int get_group(int id) {
-    return id % 2 == 0? 0 : 1;
+    //return id % 2 == 0? 0 : 1;
+    return id % 3;
   }
 
   public static TAddress get_leader(int msg_key, HashSet<TAddress> nodes) {

@@ -20,10 +20,11 @@ public class ScenarioGen {
   static String addr_prefix = "192.193.0.";
   static HashSet<TAddress> nodes;
   static int port = 10000;
+  static final int N = 5;
 
   static{
-    nodes = new HashSet<>(6);
-    for (int i = 1; i <= 6; i++) {
+    nodes = new HashSet<>();
+    for (int i = 1; i <= N; i++) {
       try {
         InetAddress ip = InetAddress.getByName(addr_prefix + i);
         TAddress addr = new TAddress(ip, port);
@@ -145,28 +146,28 @@ public class ScenarioGen {
         SimulationScenario.StochasticProcess kill_node = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(1, killNodeOp, new BasicIntSequentialDistribution(4));
+            raise(1, killNodeOp, new BasicIntSequentialDistribution(3));
           }
         };
 
         SimulationScenario.StochasticProcess restart_node = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(1, epfdClientOp, new BasicIntSequentialDistribution(4));
+            raise(1, epfdClientOp, new BasicIntSequentialDistribution(3));
           }
         };
 
         SimulationScenario.StochasticProcess clients = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(6, startClientOp, new BasicIntSequentialDistribution(1));
+            raise(6, startClientOp, new BasicIntSequentialDistribution(0));
           }
         };
 
         SimulationScenario.StochasticProcess epfdclients = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
-            raise(6, epfdClientOp, new BasicIntSequentialDistribution(1));
+            raise(6, epfdClientOp, new BasicIntSequentialDistribution(0));
           }
         };
 

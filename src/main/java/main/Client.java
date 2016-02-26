@@ -35,7 +35,7 @@ public class Client extends ComponentDefinition {
       if (self.getIp().toString().contains(".3")) {
         //trigger(new Command(22, 4), sm_port); //read
         //trigger(new Command(21), sm_port); //read
-        trigger(new Command(20), sm_port); //read
+        trigger(new Command(14), sm_port); //read
       }else if (self.getIp().toString().contains(".5")){
         trigger(new Command(21, 4), sm_port); //read
       }
@@ -49,10 +49,10 @@ public class Client extends ComponentDefinition {
       logger.info("{} received {}", self, commandReturn);
       if (commandReturn.cmd.op == Op.WRITE) {
         trigger(new Command(21), sm_port); //read
-      }else if (k == 0 && commandReturn.cmd.op == Op.READ && commandReturn.cmd.key == 20){
+      }else if (k == 0 && commandReturn.cmd.op == Op.READ && commandReturn.cmd.key == 14){
         k++;
-        trigger(new Command(20, -1, commandReturn.value), sm_port);
-        trigger(new Command(20), sm_port); //read
+        trigger(new Command(14, -1, commandReturn.value), sm_port);
+        trigger(new Command(14), sm_port); //read
       }
     }
   };

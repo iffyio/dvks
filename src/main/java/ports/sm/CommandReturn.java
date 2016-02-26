@@ -32,7 +32,7 @@ public class CommandReturn implements KompicsEvent, Serializable{
     String op_res = "";
     switch (cmd.op) {
       case READ:
-        op_res = Integer.toString(value);
+        op_res = ""+value;
         break;
       case CAS:
         op_res = Boolean.toString(CAS_Success);

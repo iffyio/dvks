@@ -32,12 +32,10 @@ public class SM extends ComponentDefinition {
     store = new HashMap<>();
     pending = new HashSet<>();
 
-    if (self.group % 2 == 0)
-      for (int i = 2; i <= 20; i += 2)
-        store.put(i, i * 4);
-    else
-      for (int i = 1; i < 20; i += 2)
-        store.put(i, i * 4);
+    for (int i = self.group, j = 0; j < 5; j++) {
+      store.put(i, i * 4);
+      i+=3;
+    }
 
 
     subscribe(startHandler, control);
@@ -56,7 +54,7 @@ public class SM extends ComponentDefinition {
   Handler<Command> commandHandler = new Handler<Command>() {
     @Override
     public void handle(Command c) {
-      logger.info("{} trigger new propose {}", self, c);
+      //logger.info("{} trigger new propose {}", self, c);
       c.proposer = self;
       c.ts = ++ts;
       pending.add(c);
@@ -115,6 +113,14 @@ public class SM extends ComponentDefinition {
       store.put(c.key, c.value);
       return true;
     }
+  }
+
+  private void print_store() {
+    StringBuilder sb = new StringBuilder(self.toString());
+    for (int key : store.keySet())
+      sb.append(String.format("(%d,%d) ", key, store.get(key)));
+    sb.append("\n");
+    logger.info("{}", sb.toString());
   }
 
 
