@@ -37,7 +37,8 @@ public class TAddress implements Address, Serializable {
 
   @Override
   public final String toString() {
-    return isa.toString();
+    return "<" + isa.getAddress().toString().substring(11) + ">";
+    //return isa.toString();
   }
 
   @Override

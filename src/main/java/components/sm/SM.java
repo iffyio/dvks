@@ -1,11 +1,10 @@
 package components.sm;
+import ports.sm.*;
 
-import main.Routing;
 import msg.TAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ports.paxos.*;
-import ports.sm.*;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
 
@@ -68,45 +67,55 @@ public class SM extends ComponentDefinition {
   Handler<Deliver> deliverHandler = new Handler<Deliver>() {
     @Override
     public void handle(Deliver deliver) {
-      Command c = deliver.command;
-      TAddress sender = c.proposer;
-      if (!c.isRead)
-        store.put(c.key, c.value);
-
-      if (sender.group != self.group)
-        send_return_message(c);
-      else if (sender.equals(self)) {
-        handle_delivery(c);
-      }
+      execute_and_reply(deliver.command);
     }
   };
 
-  private void handle_delivery(Command c) {
-    logger.info("{} sm-delivered {}", self, c);
-    if (pending.contains(c)) {
-       pending.remove(c);
-      trigger(new CommandReturn(c.key, store.get(c.key), c.isRead), sm_port);
-    }
-  }
 
-  private void send_return_message(Command c) {
+  private void execute_and_reply(Command c) {
+    CommandReturn cr = new CommandReturn(c.key, c);
+    switch (c.op) {
+      //execute
+      case READ:
+        cr.value = store.get(c.key);
+        break;
+      case CAS:
+        cr.CAS_Success = compare_and_swap(c);
+        break;
+      case WRITE:
+        store.put(c.key, c.value);
+        break;
+    }
+    //reply
     TAddress sender = c.proposer;
-    logger.info("{} sends {} to {}", self, c, sender);
-    c.value = store.get(c.key); //answer read/write query
-    trigger(new CommandReturnMessage(self, sender, c), network);
+    if (sender.group != self.group) {
+      trigger(new CommandReturnMessage(self, sender,cr), network);
+    }else if (sender.equals(self) && pending.remove(c)) {
+      logger.info("{} sm-delivered {}", self, c);
+      trigger(cr, sm_port);
+    }
   }
 
   Handler<CommandReturnMessage> returnMessageHandler = new Handler<CommandReturnMessage>() {
     @Override
     public void handle(CommandReturnMessage crm) {
-      Command c = crm.command;
-      if (pending.contains(c)) {
-        logger.info("{} sm-delivered from group {} {}", self, Routing.get_group(c.key), c);
-        pending.remove(c);
-        trigger(new CommandReturn(c.key, c.value, c.isRead), sm_port);
+      CommandReturn cr = crm.commandReturn;
+      if (pending.remove(cr.cmd)) {
+        //logger.info("{} sm-delivered from group {} {}", self, Routing.get_group(c.key), c);
+        trigger(cr, sm_port);
       }
     }
   };
+
+  private boolean compare_and_swap(Command c) {
+    Integer v = store.get(c.key);
+    if (v == null || Integer.compare(v, c.ref) != 0) {
+      return false;
+    }else{
+      store.put(c.key, c.value);
+      return true;
+    }
+  }
 
 
   public static class Init extends se.sics.kompics.Init<SM> {

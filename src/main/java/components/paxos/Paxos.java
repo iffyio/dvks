@@ -73,7 +73,7 @@ public class Paxos extends ComponentDefinition {
 
   Handler<Start> startHandler = new Handler<Start>() {
     public void handle(Start event) {
-      logger.info("paxos started on node {}!", self);
+      //logger.info("paxos started on node {}!", self);
     }
   };
 
@@ -130,7 +130,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(Prepare prepare) {
       t = Math.max(t, prepare.t) + 1;
-      logger.info("{}", prepare);
+      //logger.info("{}", prepare);
       if (prepare.pts < prepts)
         trigger(new Nack(self, prepare.getSource(), prepare.pts, t), network); //NACK if already promised
       else {
@@ -145,7 +145,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(PrepareAck pa) {
       t = Math.max(t, pa.t) + 1;
-      logger.info("{}", pa);
+      //logger.info("{}", pa);
       if (pts == pa.pts) {
         TAddress q = pa.getSource();
         readList.put(q, new AcceptorData(pa.ats,pa.vsuf));//p's knowledge of q's accepted seq
@@ -175,7 +175,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(Accept ac) {
       t = Math.max(t, ac.t) + 1;
-      logger.info("{}", ac);
+      //logger.info("{}", ac);
       TAddress p = ac.getSource();
       if (ac.pts != prepts)
         trigger(new Nack(self, p, ac.pts, t), network);
@@ -192,7 +192,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(AcceptAck ak) {
       t = Math.max(t, ak.t) + 1;
-      logger.info("{}", ak);
+      //logger.info("{}", ak);
       TAddress q = ak.getSource();
       if (pts == ak.pts) {
         accepted.put(q, ak.l);
@@ -212,7 +212,7 @@ public class Paxos extends ComponentDefinition {
     @Override
     public void handle(Decide dc) {
       t = Math.max(t, dc.t) + 1;
-      logger.info("{}", dc);
+      //logger.info("{}", dc);
       if (dc.pts == prepts) {
         while (al < dc.l) {
           PaxosCommand pc = av.get(al++); //zero based index bug
@@ -246,7 +246,7 @@ public class Paxos extends ComponentDefinition {
       if (pts == nack.pts) {
         pts = 0;
         //abort
-        logger.info("{}",nack);
+        logger.info("aborting due to {}",nack);
         System.exit(1);
       }
     }
@@ -292,13 +292,13 @@ public class Paxos extends ComponentDefinition {
       if (!leader.equals(self)) {
         trigger(new ProposeRequest(pr.getSource(), leader, pr.command), network);//use senders addresss as source instead
       }else{
-        logger.info("leader {}: preq {}", self, pr); //get from all other members
+        //logger.info("leader {}: preq {}", self, pr); //get from all other members
         PaxosCommand pc = new PaxosCommand(pr.getSource(), pr.command); //using senders addr as source not necessary
         if (!proposedValues.contains(pc) && !pv.contains(pc)) {
-          logger.info("proposing {}", pc);
+          //logger.info("proposing {}", pc);
           propose(pc);
-        }else
-        logger.info("not proposing duplicate {}", pc);
+        }/*else
+        logger.info("not proposing duplicate {}", pc);*/
       }
     }
   };

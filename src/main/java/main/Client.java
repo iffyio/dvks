@@ -46,7 +46,7 @@ public class Client extends ComponentDefinition {
     @Override
     public void handle(CommandReturn commandReturn) {
       logger.info("{} received {}", self, commandReturn);
-      if (!commandReturn.isRead)
+      if (commandReturn.cmd.op == Op.WRITE)
         trigger(new Command(21), sm_port); //read
     }
   };
