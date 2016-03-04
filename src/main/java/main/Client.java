@@ -167,7 +167,7 @@ public class Client extends ComponentDefinition {
   private void set_timer() {
     int min = 30, max = 1000;
     delay = random.nextInt((max - min) + 1) + min;
-    logger.info("{} - {}",self,delay);
+    //logger.info("{} - {}",self,delay);
     ScheduleTimeout st = new ScheduleTimeout(delay);
     CommandTimeout timeout = new CommandTimeout(st);
     st.setTimeoutEvent(timeout);

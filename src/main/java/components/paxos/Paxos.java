@@ -12,10 +12,14 @@ import ports.paxos.*;
 import ports.sm.Command;
 import se.sics.kompics.*;
 import se.sics.kompics.network.Network;
+import se.sics.kompics.timer.ScheduleTimeout;
+import se.sics.kompics.timer.Timeout;
+import se.sics.kompics.timer.Timer;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.UUID;
 
 public class Paxos extends ComponentDefinition {
 
@@ -26,6 +30,8 @@ public class Paxos extends ComponentDefinition {
   private LinkedList<PaxosCommand> av, pv;
   private HashMap<TAddress, AcceptorData> readList;
   private HashMap<TAddress, Integer> accepted, decided;
+  private boolean aborted = false;
+  private UUID timerId;
 
 
   private static final Logger logger = LoggerFactory.getLogger(Paxos.class);
@@ -65,9 +71,11 @@ public class Paxos extends ComponentDefinition {
     subscribe(acceptAckHandler, network);
     subscribe(decideHandler, network);
     subscribe(nackHandler, network);
+    subscribe(timeoutHandler, timer);
   }
 
   Positive<Network> network = requires(Network.class);
+  Positive<Timer> timer = requires(Timer.class);
   Positive<EPFDPort> epfd_port = requires(EPFDPort.class);
   Negative<PaxosPort> paxos_port = provides(PaxosPort.class);
 
@@ -101,6 +109,10 @@ public class Paxos extends ComponentDefinition {
   };
 
   private void propose(PaxosCommand v) {
+    if (aborted) {
+      proposedValues.add(v);
+      return;
+    }
     if (pts == 0) {
       t++;
       pts = t * N + self.rank;
@@ -146,6 +158,7 @@ public class Paxos extends ComponentDefinition {
     public void handle(PrepareAck pa) {
       t = Math.max(t, pa.t) + 1;
       //logger.info("{}", pa);
+      if (aborted) return;
       if (pts == pa.pts) {
         TAddress q = pa.getSource();
         readList.put(q, new AcceptorData(pa.ats,pa.vsuf));//p's knowledge of q's accepted seq
@@ -176,6 +189,7 @@ public class Paxos extends ComponentDefinition {
     public void handle(Accept ac) {
       t = Math.max(t, ac.t) + 1;
       //logger.info("{}", ac);
+      if (aborted) return;
       TAddress p = ac.getSource();
       if (ac.pts != prepts)
         trigger(new Nack(self, p, ac.pts, t), network);
@@ -193,6 +207,7 @@ public class Paxos extends ComponentDefinition {
     public void handle(AcceptAck ak) {
       t = Math.max(t, ak.t) + 1;
       //logger.info("{}", ak);
+      if (aborted) return;
       TAddress q = ak.getSource();
       if (pts == ak.pts) {
         accepted.put(q, ak.l);
@@ -247,10 +262,21 @@ public class Paxos extends ComponentDefinition {
         pts = 0;
         //abort
         logger.info("aborting due to {}",nack);
-        System.exit(1);
+        aborted = true;
+        set_timer();
       }
     }
+
   };
+  private void set_timer() {
+    int delay = 300;
+    //logger.info("{} - {}",self,delay);
+    ScheduleTimeout st = new ScheduleTimeout(delay);
+    AbortTimeout timeout = new AbortTimeout(st);
+    st.setTimeoutEvent(timeout);
+    trigger(st, timer);
+    timerId = timeout.getTimeoutId();
+  }
 
   private AcceptorData getHighestData() {
     AcceptorData ad = new AcceptorData(0, new LinkedList<PaxosCommand>());
@@ -303,7 +329,19 @@ public class Paxos extends ComponentDefinition {
     }
   };
 
+  Handler<AbortTimeout> timeoutHandler = new Handler<AbortTimeout>() {
+    @Override
+    public void handle(AbortTimeout abortTimeout) {
+      aborted = false;
+      propose(proposedValues.getFirst());
+    }
+  };
 
+  public static class AbortTimeout extends Timeout {
+    public AbortTimeout(ScheduleTimeout st) {
+      super(st);
+    }
+  }
 
 
 

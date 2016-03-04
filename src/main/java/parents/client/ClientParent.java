@@ -40,6 +40,7 @@ public class ClientParent extends ComponentDefinition{
     connect(epfd.getNegative(Network.class), network, Channel.TWO_WAY);
     connect(paxos.getNegative(EPFDPort.class), epfd.getPositive(EPFDPort.class), Channel.TWO_WAY);
     connect(paxos.getNegative(Network.class), network, Channel.TWO_WAY);
+    connect(paxos.getNegative(Timer.class), timer, Channel.TWO_WAY);
     connect(stateMachine.getNegative(Network.class), network, Channel.TWO_WAY);
     connect(stateMachine.getNegative(PaxosPort.class), paxos.getPositive(PaxosPort.class), Channel.TWO_WAY);
     connect(client.getNegative(SMPort.class), stateMachine.getPositive(SMPort.class), Channel.TWO_WAY);
