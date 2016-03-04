@@ -80,7 +80,7 @@ public class Paxos extends ComponentDefinition {
   Handler<Propose> proposeHandler = new Handler<Propose>() {
     @Override
     public void handle(Propose propose) {
-      logger.info("{} received new propose {}", self, propose.command);
+      //logger.info("{} received new propose {}", self, propose.command);
       Command c = propose.command;
       int c_group = Routing.get_group(c.key);
       if (c_group != self.group) {

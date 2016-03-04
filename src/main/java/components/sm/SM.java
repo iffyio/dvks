@@ -89,7 +89,7 @@ public class SM extends ComponentDefinition {
     if (sender.group != self.group) {
       trigger(new CommandReturnMessage(self, sender,cr), network);
     }else if (sender.equals(self) && pending.remove(c)) {
-      logger.info("{} sm-delivered {}", self, c);
+      //logger.info("{} sm-delivered {}", self, c);
       trigger(cr, sm_port);
     }
   }

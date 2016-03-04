@@ -4,17 +4,24 @@ import main.Routing;
 import msg.TAddress;
 import parents.client.ClientParent;
 import parents.epfd.EPFDParent;
+import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Init;
+import se.sics.kompics.Start;
 import se.sics.kompics.network.Address;
 import se.sics.kompics.simulator.SimulationScenario;
+import se.sics.kompics.simulator.adaptor.Operation;
 import se.sics.kompics.simulator.adaptor.Operation1;
 import se.sics.kompics.simulator.adaptor.distributions.extra.BasicIntSequentialDistribution;
 import se.sics.kompics.simulator.events.system.KillNodeEvent;
+import se.sics.kompics.simulator.events.system.SetupEvent;
 import se.sics.kompics.simulator.events.system.StartNodeEvent;
+import se.sics.kompics.simulator.util.GlobalView;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 public class ScenarioGen {
   static String addr_prefix = "192.193.0.";
@@ -139,10 +146,61 @@ public class ScenarioGen {
     }
   };
 
+  static Operation setupOp = new Operation<SetupEvent>() {
+    public SetupEvent generate() {
+      return new SetupEvent() {
+        @Override
+        public void setupGlobalView(GlobalView gv) {
+          gv.setValue("simulation.log", new StringBuilder());
+        }
+      };
+    }
+  };
+
+  static Operation startObserverOp = new Operation<StartNodeEvent>() {
+    public StartNodeEvent generate() {
+      return new StartNodeEvent() {
+        TAddress selfAdr;
+
+        {
+          try {
+            selfAdr = new TAddress(InetAddress.getByName("0.0.0.0"), 0);
+          } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        public Map<String, Object> initConfigUpdate() {
+          HashMap<String, Object> config = new HashMap<>();
+          return config;
+        }
+
+        public Address getNodeAddress() {
+          return selfAdr;
+        }
+
+        public Class getComponentDefinition() {
+          return SimulationObserver.class;
+        }
+
+        public Init getComponentInit() {
+          return new SimulationObserver.Init();
+        }
+
+      };
+    }
+  };
+
 
   public static SimulationScenario bebScene() {
     SimulationScenario scen = new SimulationScenario() {
       {
+        SimulationScenario.StochasticProcess setup = new SimulationScenario.StochasticProcess() {
+          {
+            raise(1, setupOp);
+          }
+        };
+
         SimulationScenario.StochasticProcess kill_node = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
@@ -164,6 +222,12 @@ public class ScenarioGen {
           }
         };
 
+        SimulationScenario.StochasticProcess observer = new SimulationScenario.StochasticProcess() {
+          {
+            raise(1, startObserverOp);
+          }
+        };
+
         SimulationScenario.StochasticProcess epfdclients = new SimulationScenario.StochasticProcess() {
           {
             eventInterArrivalTime(constant(0));
@@ -171,11 +235,13 @@ public class ScenarioGen {
           }
         };
 
+        setup.start();
         clients.start();
         //kill_node.startAfterTerminationOf(0, clients);
         //restart_node.startAfterTerminationOf(4000, clients);
         //terminateAfterTerminationOf(3000, restart_node);
-        terminateAfterTerminationOf(3000, clients);
+        observer.startAfterTerminationOf(3000, clients);
+        terminateAfterTerminationOf(3000, observer);
       }
     };
     return scen;

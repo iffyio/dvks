@@ -8,6 +8,7 @@ import se.sics.kompics.ComponentDefinition;
 import se.sics.kompics.Handler;
 import se.sics.kompics.Positive;
 import se.sics.kompics.Start;
+import se.sics.kompics.simulator.util.GlobalView;
 import se.sics.kompics.timer.CancelPeriodicTimeout;
 import se.sics.kompics.timer.ScheduleTimeout;
 import se.sics.kompics.timer.Timeout;
@@ -31,7 +32,6 @@ public class Client extends ComponentDefinition {
   List<Command> CAS_Commands;
   Random random;
 
-  //Positive<BebPort> beb_port = requires(BebPort.class);
   Positive<Timer> timer = requires(Timer.class);
   //Positive<Network> network = requires(Network.class);
   Positive<SMPort> sm_port = requires(SMPort.class);
@@ -58,6 +58,11 @@ public class Client extends ComponentDefinition {
       }else if (id == 5) {
         trigger(new Command(21, 4), sm_port); //read
       }*/
+
+      int[] excluded = new int[] {6,1,5,7,2}; //excluded nodes don't execute any commands
+      for (int i : excluded)
+        if (i == id) return;
+
       load_commands();
       set_timer();
     }
@@ -66,7 +71,9 @@ public class Client extends ComponentDefinition {
   Handler<CommandReturn> commandReturnHandler = new Handler<CommandReturn>() {
     @Override
     public void handle(CommandReturn cr) {
-      logger.info("{} received {}", self, cr);
+      String s = String.format("%s response %s", self, cr);
+      log_execution(s);
+      //logger.info(s);
       /*if (commandReturn.cmd.op == Op.WRITE) {
         trigger(new Command(21), sm_port); //read
       }else if (k == 0 && commandReturn.cmd.op == Op.READ && commandReturn.cmd.key == 14){
@@ -81,6 +88,12 @@ public class Client extends ComponentDefinition {
       }
     }
   };
+
+  private void log_execution(String s) {
+    GlobalView gv = config().getValue("simulation.globalview", GlobalView.class);
+    gv.setValue("simulation.log",
+            gv.getValue("simulation.log", StringBuilder.class).append(s).append("\n"));
+  }
 
   private Command get_cas_command(int key) {
     for (Command cmd : CAS_Commands){
@@ -97,9 +110,16 @@ public class Client extends ComponentDefinition {
       Command cmd = commands.get(c++);
       if (cmd.op == Op.CAS) {
         CAS_Commands.add(cmd); //pending cas
-        trigger(new Command(cmd.key), sm_port); //retrieve current value first
+        Command rcmd = new Command(cmd.key);
+        trigger(rcmd, sm_port); //retrieve current value first
+        //logger.info("{} invoke {}", self, rcmd);
+        String s = String.format("%s invoke %s", self, rcmd);
+        log_execution(s);
       }else{
         trigger(cmd, sm_port);
+        //logger.info("{} invoke {}", self, cmd);
+        String s = String.format("%s invoke %s", self, cmd);
+        log_execution(s);
       }
       set_timer();
     }
@@ -145,7 +165,9 @@ public class Client extends ComponentDefinition {
   }
 
   private void set_timer() {
-    delay = random.nextInt((100 - 30) + 1) + 30;
+    int min = 30, max = 1000;
+    delay = random.nextInt((max - min) + 1) + min;
+    logger.info("{} - {}",self,delay);
     ScheduleTimeout st = new ScheduleTimeout(delay);
     CommandTimeout timeout = new CommandTimeout(st);
     st.setTimeoutEvent(timeout);
